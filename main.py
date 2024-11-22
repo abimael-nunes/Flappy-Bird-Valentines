@@ -1,13 +1,17 @@
 import pygame
 import os
 import random
+from tkinter import messagebox, simpledialog
 
+DIFICULDADE = simpledialog.askinteger("FlappyBird", "Informe o nível de dificuldade desejado.\n Escolha um número entre 1 (Mais devagar) e 10 (Mais rápido)")             # Define a velocidade de passagem dos canos e do chão
+PONTUACAO_DESEJADA = 5          # Define a pontuação mínima para que "coisas aconteçam"
 TELA_LARGURA = 500
 TELA_ALTURA = 800
 
 IMAGEM_CANO = pygame.transform.scale2x(pygame.image.load(os.path.join('imgs', 'pipe.png')))
 IMAGEM_CHAO = pygame.transform.scale2x(pygame.image.load(os.path.join('imgs', 'base.png')))
 IMAGEM_BACKGROUND = pygame.transform.scale2x(pygame.image.load(os.path.join('imgs', 'bg.png')))
+IMAGEM_BACKGROUND_FINAL = pygame.image.load(os.path.join('imgs', 'bg_2.png'))
 IMAGENS_PASSARO = [
     pygame.transform.scale2x(pygame.image.load(os.path.join('imgs', 'bird1.png'))),
     pygame.transform.scale2x(pygame.image.load(os.path.join('imgs', 'bird2.png'))),
@@ -95,7 +99,7 @@ class Passaro:
 
 class Cano:
     DISTANCIA = 200
-    VELOCIDADE = 5
+    VELOCIDADE = DIFICULDADE
 
     def __init__(self, x):
         self.x = x
@@ -137,7 +141,7 @@ class Cano:
 
 
 class Chao:
-    VELOCIDADE = 5
+    VELOCIDADE = DIFICULDADE
     LARGURA = IMAGEM_CHAO.get_width()
     IMAGEM = IMAGEM_CHAO
 
@@ -165,8 +169,12 @@ def tela_inicial(tela):
     tela.blit(IMAGEM_BACKGROUND, (0, 0))
     font = pygame.font.Font(None, 36)
     text = font.render("Clique para começar!", True, (0, 0, 0), (60, 156, 164))
+    font = pygame.font.Font(None, 26)
+    text_credito = font.render("Por Abimael Nunes", True, (90, 90, 90))
     text_rect = text.get_rect(center=(TELA_LARGURA // 2, TELA_ALTURA // 2))
+    text_credito_rect = text_credito.get_rect(center=(TELA_LARGURA // 2, TELA_ALTURA - 20))
     tela.blit(text, text_rect)
+    tela.blit(text_credito,text_credito_rect)
     pygame.display.update()
 
     # Loop para aguardar o clique do usuário
@@ -193,11 +201,67 @@ def desenhar_tela(tela, passaros, canos, chao, pontos):
     pygame.display.update()
 
 
+def tela_pedido(tela):
+    font = pygame.font.Font(None, 36)
+
+    # Cria os botões (retângulos)
+    button_sim = pygame.Rect(100, TELA_ALTURA // 2 + 100, 100, 50)
+    button_nao = pygame.Rect(300, TELA_ALTURA // 2 + 100, 100, 50)
+
+    # Variável para controlar a posição do botão "não"
+    nao_moving = False
+
+    rodando = True
+    while rodando:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                rodando = False
+
+            # Verifica se o mouse está sobre o botão "não"
+            if event.type == pygame.MOUSEMOTION:
+                mouse_pos = pygame.mouse.get_pos()
+                if button_nao.collidepoint(mouse_pos):
+                    nao_moving = True
+                else:
+                    nao_moving = False
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = pygame.mouse.get_pos()
+                if button_sim.collidepoint(mouse_pos):
+                    messagebox.askyesno("FlappyBird", "Você declara que leu e concorda com os termos?", icon='question')
+                    pygame.quit()
+                    quit()
+
+
+        # Atualiza a posição do botão "não" se necessário
+        if nao_moving:
+            button_nao.x = random.randint(0, TELA_LARGURA - button_nao.width)
+            button_nao.y = random.randint(0, TELA_ALTURA - button_nao.height)
+
+        # Desenha na tela
+        tela.blit(IMAGEM_BACKGROUND, (0, 0))
+        tela.blit(IMAGEM_BACKGROUND_FINAL, (TELA_LARGURA // 2 - 145, TELA_ALTURA // 2 - 350))
+        pygame.draw.rect(tela, (255, 102, 196), button_sim)
+        pygame.draw.rect(tela, (255, 255, 255), button_nao)
+
+        # Texto nos botões
+        text_sim = font.render("Sim", True, (0, 0, 0))
+        text_nao = font.render("Não", True, (0, 0, 0))
+        tela.blit(text_sim, (button_sim.x + 20, button_sim.y + 10))
+        tela.blit(text_nao, (button_nao.x + 20, button_nao.y + 10))
+
+        pygame.display.flip()
+
+
 def tela_fim_de_jogo(tela, pontos):
     # Desenhar o fundo, o texto e os botões
     fonte = pygame.font.SysFont('arial', 50)
     texto = fonte.render(f"Fim de jogo! Pontuação: {pontos}", True, (255, 255, 255))
-    texto_rect = texto.get_rect(center=(TELA_LARGURA // 2, TELA_ALTURA // 2 - 50))
+    texto_rect = texto.get_rect(center=(TELA_LARGURA // 2, TELA_ALTURA // 2 - 150))
+    fonte = pygame.font.SysFont('arial', 26)
+    texto_restart = fonte.render("Você quer jogar novamente?", True, (0, 0, 0))
+    texto_restart_rect = texto_restart.get_rect(center=(TELA_LARGURA // 2, TELA_ALTURA // 2 - 50))
+
 
     botao_sim = pygame.Rect(TELA_LARGURA // 2 - 100, TELA_ALTURA // 2, 200, 50)
     botao_nao = pygame.Rect(TELA_LARGURA // 2 - 100, TELA_ALTURA // 2 + 70, 200, 50)
@@ -212,17 +276,20 @@ def tela_fim_de_jogo(tela, pontos):
                 mouse_pos = pygame.mouse.get_pos()
                 if botao_sim.collidepoint(mouse_pos):
                     # Reiniciar o jogo
-                    # ... (chamar a função main() novamente)
-                    return True
+                    if pontos < 5:
+                        main()
+                    else:
+                        tela_pedido(tela)
                 elif botao_nao.collidepoint(mouse_pos):
                     # Sair do jogo
                     pygame.quit()
                     quit()
 
-        tela.fill((0, 0, 0))
-        pygame.draw.rect(tela, (255, 0, 0), botao_sim)
-        pygame.draw.rect(tela, (0, 0, 255), botao_nao)
+        tela.blit(IMAGEM_BACKGROUND, (0, 0))
+        pygame.draw.rect(tela, (94, 226, 112), botao_sim)
+        pygame.draw.rect(tela, (60, 156, 164), botao_nao)
         tela.blit(texto, texto_rect)
+        tela.blit(texto_restart, texto_restart_rect)
         fonte_botao = pygame.font.SysFont('arial', 30)
         texto_sim = fonte_botao.render("Sim", True, (255, 255, 255))
         texto_nao = fonte_botao.render("Não", True, (255, 255, 255))
